@@ -16,6 +16,7 @@ limitations under the License.
 """
 import argparse
 import urllib2
+import bs4
 from bs4 import BeautifulSoup
 
 
@@ -27,15 +28,20 @@ def main():
     url = "http://www.iciba.com/" + args.word
     page = urllib2.urlopen(url)
     soup = BeautifulSoup(page.read(), "lxml")
-    base_trans = soup.find("ul", {"class": "base-list"})
-    base_trans = base_trans.find_all("li")
+    base_trans = soup.find("ul", {"class": "base-list"}).contents
+    #base_trans = base_trans.find_all("li")
     for item in base_trans:
-        category = item.find("span", {"class": "prop"}).string
-        trans = item.find("p").string
-        if category is not None and trans is not None:
-            print "%s %s" % (
-                category.strip(),
-                trans.strip().replace("                         ", " "))
+        if isinstance(item, bs4.element.NavigableString):
+            content = item.string.strip()
+            if content:
+                print content
+        elif isinstance(item, bs4.element.Tag):
+            category = item.find("span", {"class": "prop"}).string
+            trans = item.find("p").string
+            if category is not None and trans is not None:
+                print "%s %s" % (
+                    category.strip(),
+                    trans.strip().replace("                         ", " "))
 
 if __name__ == "__main__":
     main()
