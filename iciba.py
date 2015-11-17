@@ -28,13 +28,18 @@ def main():
     url = "http://www.iciba.com/" + args.word
     page = urllib2.urlopen(url)
     soup = BeautifulSoup(page.read(), "lxml")
-    base_trans = soup.find("ul", {"class": "base-list"}).contents
-    #base_trans = base_trans.find_all("li")
-    for item in base_trans:
+    base_trans = soup.find("ul", {"class": "base-list"})
+    error_msg = "There is no translation..."
+    if base_trans is None:
+        print error_msg
+        return
+    exist_trans = False
+    for item in base_trans.contents:
         if isinstance(item, bs4.element.NavigableString):
             content = item.string.strip()
             if content:
                 print content
+                exist_trans = True
         elif isinstance(item, bs4.element.Tag):
             category = item.find("span", {"class": "prop"}).string
             trans = item.find("p").string
@@ -42,6 +47,9 @@ def main():
                 print "%s %s" % (
                     category.strip(),
                     trans.strip().replace("                         ", " "))
+                exist_trans = True
+    if not exist_trans:
+        print error_msg
 
 if __name__ == "__main__":
     main()
