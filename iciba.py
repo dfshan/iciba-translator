@@ -20,6 +20,64 @@ import bs4
 from bs4 import BeautifulSoup
 
 
+def basic_trans(soup):
+    ''' Find the basic translation
+    Args:
+        bs: A BeautifulSoup object containing the page of word tranlation
+
+    Returns:
+        A sequence of strings containing all translations
+    '''
+    result = []
+    base_trans = soup.find("ul", {"class": "base-list"})
+    if base_trans is None:
+        return result
+    exist_trans = False
+    for item in base_trans.contents:
+        if isinstance(item, bs4.element.NavigableString):
+            content = item.string.strip()
+            if content:
+                result.append(content)
+        elif isinstance(item, bs4.element.Tag):
+            category = item.find("span", {"class": "prop"})
+            trans = item.find("p")
+            if category is not None and trans is not None:
+                if "chinese" in category["class"]:
+                    result.append("%s: %s %s" % (
+                        category.string.strip(),
+                        trans.find("span").string,
+                        trans.find("a").string))
+                else:
+                    result.append("%s %s" % (
+                        category.string.strip(),
+                        trans.string.strip().replace(
+                            "                         ",
+                            " ")))
+    return result
+
+
+def example_article(soup):
+    ''' Find the example articles
+    Args:
+        bs: A BeautifulSoup object containing the page of word tranlation
+
+    Returns:
+        A sequence of dicts containing all articles by english, chinese, and from
+    '''
+    result = []
+    articles = soup.find("div", {"class": "info-article article-tab"})
+    if articles is None:
+        return result
+    for section in articles.find_all("div", {"class": "section-p"}):
+        english = section.find("p", {"class": "p-english"}).contents[0]
+        chinese = section.find("p", {"class": "p-chinese"}).string
+        from_where = section.find("p", {"class": "p-from"}).string
+        result.append({
+            "english": english,
+            "chinese": chinese,
+            "from": from_where})
+    return result
+
 def iciba(word):
     ''' Translate the word
     Args:
@@ -32,23 +90,16 @@ def iciba(word):
     url = "http://www.iciba.com/" + word
     page = urllib2.urlopen(url)
     soup = BeautifulSoup(page.read(), "lxml")
-    base_trans = soup.find("ul", {"class": "base-list"})
-    error_msg = "There is no translation..."
-    if base_trans is None:
-        return result
-    exist_trans = False
-    for item in base_trans.contents:
-        if isinstance(item, bs4.element.NavigableString):
-            content = item.string.strip()
-            if content:
-                result.append(content)
-        elif isinstance(item, bs4.element.Tag):
-            category = item.find("span", {"class": "prop"}).string
-            trans = item.find("p").string
-            if category is not None and trans is not None:
-                result.append("%s %s" % (
-                    category.strip(),
-                    trans.strip().replace("                         ", " ")))
+    result.extend(basic_trans(soup))
+    result.extend(["", u"例句："])
+    for item in example_article(soup):
+        if item["english"] is not None:
+            result.append(item["english"])
+        if item["chinese"] is not None:
+            result.append(item["chinese"])
+        if item["from"] is not None:
+            result.append(item["from"])
+        result.append("")
     return result
 
 
