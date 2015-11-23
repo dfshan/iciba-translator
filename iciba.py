@@ -20,6 +20,22 @@ import bs4
 from bs4 import BeautifulSoup
 
 
+def pronounce(soup):
+    ''' Find the pronounce of the word
+    Args:
+        bs: A BeautifulSoup object containing the page of word tranlation
+
+    Returns:
+        A string containing pronounce
+    '''
+    result = "Pronounce: "
+    prons = soup.find("div", {"class": "base-speak"})
+    if prons is None:
+        return ""
+    for pron in prons.find_all("span"):
+        result += pron.string + " "
+    return result
+
 def basic_trans(soup):
     ''' Find the basic translation
     Args:
@@ -28,7 +44,7 @@ def basic_trans(soup):
     Returns:
         A sequence of strings containing all translations
     '''
-    result = []
+    result = [u"基本释义:", ]
     base_trans = soup.find("ul", {"class": "base-list"})
     if base_trans is None:
         return result
@@ -90,6 +106,7 @@ def iciba(word):
     url = "http://www.iciba.com/" + word
     page = urllib2.urlopen(url)
     soup = BeautifulSoup(page.read(), "lxml")
+    result.extend([pronounce(soup), ""])
     result.extend(basic_trans(soup))
     result.extend(["", u"例句："])
     for item in example_article(soup):
